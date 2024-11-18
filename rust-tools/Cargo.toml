@@ -1,0 +1,9 @@
+[package]
+name = "rust-tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hex = "0.4"
+dotenv = "0.15.0"
+
