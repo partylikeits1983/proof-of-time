@@ -1,66 +1,121 @@
-## Foundry
+# Proof of Time
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Setting up:
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+1) Install Noir
+```
+curl -L noirup.dev | bash
+noirup
 ```
 
-### Test
-
-```shell
-$ forge test
+2) Install Proving Backend:
+```
+curl -L bbup.dev | bash
+bbup
 ```
 
-### Format
+## Running Tests Locally:
 
-```shell
-$ forge fmt
+### 1) Create Deposit proof from /deposit/Prover.toml
+```
+cd circuits/create_event
+nargo execute
+bb prove -b ./target/create_event.json -w ./target/create_event.gz -o ./target/proof
+bb write_vk -b ./target/create_event.json -o ./target/vk
+cd ..
+cd ..
+cd rust-tools
+cargo run --package rust-tools --bin create_event_proof_convert 
+cd ..
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
+### 2) Compute nullifier hash
+```
+forge test --match-test test_write_nullifier
 ```
 
-### Anvil
 
-```shell
-$ anvil
+### 3) Get IMT root, proof siblings, and path indicies, then format /withdraw/Prover.toml
+```
+forge test --match-test test_deposit_proof_vault_generate_data
+
+cd tornado-cli
+cargo run --package tornado-cli --bin withdraw_prover_formatter
+cd ..
 ```
 
-### Deploy
+### 4) Create withdraw proof, convert to hex, run test
+```
+cd circuits/withdraw
+nargo execute
+bb prove -b ./target/withdraw.json -w ./target/withdraw.gz -o ./target/proof
+bb write_vk -b ./target/withdraw.json -o ./target/vk
+cd ..
+cd ..
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+cd tornado-cli
+cargo run --package tornado-cli --bin withdraw_proof_convert
+cd ..
+
+forge test --match-test test_withdraw_proof 
 ```
 
-### Cast
+### RUNNING THE FRONTEND:
+1) deploy contracts & run anvil
+```
+anvil --accounts 10 --timestamp $(date +%s) --block-time 5
 
-```shell
-$ cast <subcommand>
+```
+2) in new terminal deploy the vault & verifier contracts:
+```
+forge script script/Deploy.s.sol --fork-url http://127.0.0.1:8545 --private-key 2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 --broadcast
 ```
 
-### Help
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+### Full DEMO Commands:
+
+### 1) Create Deposit proof from /deposit/Prover.toml
 ```
+cd circuits/deposit
+nargo execute
+bb prove -b ./target/deposit.json -w ./target/deposit.gz -o ./target/proof
+bb write_vk -b ./target/deposit.json -o ./target/vk
+cd ..
+cd ..
+cd tornado-cli 
+cargo run --package tornado-cli --bin deposit_proof_convert 
+cd ..
+
+forge test --match-test test_write_nullifier
+```
+
+```
+sleep 11
+
+forge test --match-test test_deposit_proof_vault_generate_data
+
+cd tornado-cli
+cargo run --package tornado-cli --bin withdraw_prover_formatter
+cd ..
+```
+
+### 2) Create Withdraw Proof
+
+```
+cd circuits/withdraw
+nargo execute
+bb prove -b ./target/withdraw.json -w ./target/withdraw.gz -o ./target/proof
+bb write_vk -b ./target/withdraw.json -o ./target/vk
+cd ..
+cd ..
+
+cd tornado-cli
+cargo run --package tornado-cli --bin withdraw_proof_convert
+cd ..
+
+forge test --match-test test_withdraw_proof
+```
+
+forge test --match-test test_withdraw_proof 

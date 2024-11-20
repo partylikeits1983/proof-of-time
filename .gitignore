@@ -12,3 +12,9 @@ docs/
 
 # Dotenv file
 .env
+
+/target/
+**/*rs.bk
+Cargo.lock
+
+/lib/
