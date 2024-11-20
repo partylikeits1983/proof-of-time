@@ -12,7 +12,7 @@ fn main(secret: Field, nullifier: Field, timestamp: pub Field, leaf: pub Field) 
 fn test_main() {
     let secret = 0;
     let nullifier = 0;
-    let timestamp = 0; // Sat Nov 16 2024 04:54:06 GMT+0000
+    let timestamp = 1732276093; // Sat Nov 16 2024 04:54:06 GMT+0000
 
     let hash_0 = poseidon::bn254::hash_2([secret, nullifier]);
     let _leaf = poseidon::bn254::hash_2([hash_0, timestamp]);

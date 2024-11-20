@@ -2,7 +2,7 @@ use dep::std::hash::poseidon;
 
 fn main(
     current_timestamp: pub Field,
-    deposit_timestamp: Field,
+    create_timestamp: Field,
     root: pub Field,
     secret: Field,
     nullifier: Field,
@@ -13,11 +13,11 @@ fn main(
     // check current_timestamp - 86400 > deposit_timestamp
     // let one_day_ago = current_timestamp - 86400;
     let one_day_ago = current_timestamp - 10; // 10 seconds (for testing)
-    let can_withdraw = deposit_timestamp.lt(one_day_ago);
+    let can_withdraw = create_timestamp.lt(one_day_ago);
     assert(can_withdraw);
 
     let hash_0 = poseidon::bn254::hash_2([secret, nullifier]);
-    let leaf = poseidon::bn254::hash_2([hash_0, deposit_timestamp]);
+    let leaf = poseidon::bn254::hash_2([hash_0, create_timestamp]);
 
     assert(nullifier_hash == poseidon::bn254::hash_1([nullifier]));
 
@@ -40,13 +40,13 @@ fn test_main() {
     // Step 1: Set up inputs
     let recipient_address = 0;
     let current_timestamp = 1731728931; // Sat Nov 16 2024 03:48:51 GMT+0000
-    let deposit_timestamp = 1731613683; // Thu Nov 14 2024 19:48:03 GMT+0000
+    let create_timestamp = 1731613683; // Thu Nov 14 2024 19:48:03 GMT+0000
     let nullifier = 123456789;
     let secret = 987654321;
 
     // Step 2: Compute the leaf hash
     let hash_0 = poseidon::bn254::hash_2([secret, nullifier]);
-    let leaf = poseidon::bn254::hash_2([hash_0, deposit_timestamp]);
+    let leaf = poseidon::bn254::hash_2([hash_0, create_timestamp]);
 
     // Step 3: Compute the nullifier hash
     let nullifier_hash: Field = poseidon::bn254::hash_1([nullifier]);
@@ -84,7 +84,7 @@ fn test_main() {
     // Step 6: Invoke the main function
     main(
         current_timestamp,
-        deposit_timestamp,
+        create_timestamp,
         root,
         secret,
         nullifier,
