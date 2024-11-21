@@ -2,54 +2,42 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
-use dotenv::dotenv; // Import the dotenv crate
-use std::env; // Import the env module to access environment variables
 
 fn main() -> io::Result<()> {
-    // Initialize dotenv to load variables from .env
-    dotenv().ok();
-
     // Retrieve the RECIPIENT value from the environment
-    let recipient = env::var("RECIPIENT").expect("RECIPIENT not set in .env");
+    // let recipient = env::var("RECIPIENT").expect("RECIPIENT not set in .env");
 
     // Paths for input data
     let root_path = Path::new("../data/root.txt");
     let siblings_path = Path::new("../data/proof_siblings.txt");
     let indices_path = Path::new("../data/proof_path_indices.txt");
 
-    let asset_path = Path::new("../data/deposit_asset.txt");
-    let liquidity_path = Path::new("../data/deposit_liquidity.txt");
-    let timestamp_path = Path::new("../data/deposit_timestamp.txt");
+    let timestamp_path = Path::new("../data/create_event_timestamp.txt");
 
-    let nullifier_hash_path = Path::new("../data/withdraw_nullifier_hash.txt");
+    let nullifier_hash_path = Path::new("../data/prove_event_nullifier_hash.txt");
 
     // Paths for Prover.toml files
-    let withdraw_output_path = Path::new("../circuits/withdraw/Prover.toml");
-    let deposit_input_path = Path::new("../circuits/deposit/Prover.toml"); // Changed to input
+    let prove_event_output_path = Path::new("../circuits/prove_event/Prover.toml");
+    let create_event_input_path = Path::new("../circuits/create_event/Prover.toml");
 
     // Open the withdraw Prover.toml file for writing
-    let mut withdraw_file = File::create(&withdraw_output_path)?;
+    let mut prove_event_file = File::create(&prove_event_output_path)?;
 
     // Read data from files
     let current_timestamp = get_current_timestamp()?;
-    let deposit_timestamp = read_first_line(&timestamp_path)?;
-    let deposit_asset = read_first_line(&asset_path)?;
-    let deposit_liquidity = read_first_line(&liquidity_path)?;
+    let create_timestamp = read_first_line(&timestamp_path)?;
 
     let nullifier_hash = read_first_line(&nullifier_hash_path)?;
 
     let root_value = read_first_line(&root_path)?;
 
     // Read secret and nullifier from deposit Prover.toml
-    let (secret_value, nullifier_value) = read_prover_toml(&deposit_input_path)?;
+    let (secret_value, nullifier_value) = read_prover_toml(&create_event_input_path)?;
 
     // Common fields for Prover.toml files
     let common_fields = |file: &mut File| -> io::Result<()> {
-        writeln!(file, "_recipient_address = \"{}\"", recipient)?;
         writeln!(file, "current_timestamp = \"{}\"", current_timestamp)?;
-        writeln!(file, "deposit_timestamp = \"{}\"", deposit_timestamp)?;
-        writeln!(file, "asset = \"{}\"", deposit_asset)?;
-        writeln!(file, "liquidity = \"{}\"", deposit_liquidity)?;
+        writeln!(file, "create_timestamp = \"{}\"", create_timestamp)?;
         writeln!(file, "root = \"{}\"", root_value)?;
         writeln!(file, "secret = \"{}\"", secret_value)?;
         writeln!(file, "nullifier = \"{}\"", nullifier_value)?;
@@ -71,9 +59,9 @@ fn main() -> io::Result<()> {
     };
 
     // Write to withdraw Prover.toml
-    common_fields(&mut withdraw_file)?;
+    common_fields(&mut prove_event_file)?;
 
-    println!("Withdraw Prover.toml formatted successfully");
+    println!("prove_event Prover.toml formatted successfully");
 
     Ok(())
 }
