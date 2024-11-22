@@ -8,25 +8,25 @@ import {BinaryIMTData} from "../src/libraries/InternalBinaryIMT.sol";
 import {PoseidonT2} from "../src/libraries/PoseidonT2.sol";
 import {PoseidonT3} from "../src/libraries/PoseidonT3.sol";
 
-import {UltraVerifier as DepositVerifier} from "../../circuits/deposit/target/contract.sol";
-import {UltraVerifier as WithdrawVerifier} from "../../circuits/withdraw/target/contract.sol";
+import {UltraVerifier as CreateEventVerifier} from "../../circuits/create_event/target/contract.sol";
+import {UltraVerifier as ProveEventVerifier} from "../../circuits/prove_event/target/contract.sol";
 
 import {ConvertBytes32ToString} from "../src/libraries/Bytes32ToString.sol";
 
-import {Vault} from "../src/Vault.sol";
+import {ProofOfTime} from "../src/ProofOfTime.sol";
 
 contract CryptographyTest is Test, ConvertBytes32ToString {
     CryptoTools public hasher;
 
-    DepositVerifier public depositVerifier;
-    WithdrawVerifier public withdrawVerifier;
-    Vault public vault;
+    CreateEventVerifier public createEventVerifier;
+    ProveEventVerifier public proveEventVerifier;
+    ProofOfTime public proofOfTime;
 
     function setUp() public {
         hasher = new CryptoTools();
-        depositVerifier = new DepositVerifier();
-        withdrawVerifier = new WithdrawVerifier();
-        vault = new Vault(address(depositVerifier), address(withdrawVerifier));
+        createEventVerifier = new CreateEventVerifier();
+        proveEventVerifier = new ProveEventVerifier();
+        proofOfTime = new ProofOfTime(address(createEventVerifier), address(proveEventVerifier));
     }
 
     function test_hash() public view {
@@ -124,34 +124,32 @@ contract CryptographyTest is Test, ConvertBytes32ToString {
 
         bytes32 nullifier_hash = bytes32(PoseidonT2.hash([nullifier]));
 
-        vm.writeFile("data/create_event_nullifier_hash.txt", bytes32ToString(nullifier_hash));
+        vm.writeFile("data/prove_event_nullifier_hash.txt", bytes32ToString(nullifier_hash));
     }
 
-    function test_deposit_proof_vault_generate_data() public {
+    function test_create_event_proof_generate_data() public {
         // public inputs
-        string memory timestamp = vm.readLine("./data/deposit_timestamp.txt");
+        string memory timestamp = vm.readLine("./data/create_event_timestamp.txt");
         string memory leaf = vm.readLine("./data/create_event_leaf.txt");
 
         // proof
-        string memory proof = vm.readLine("./data/deposit_proof.txt");
+        string memory proof = vm.readLine("./data/create_event_proof.txt");
         bytes memory proofBytes = vm.parseBytes(proof);
 
         // public inputs
         bytes32[] memory publicInputs = new bytes32[](2);
-        publicInputs[2] = stringToBytes32(timestamp);
-        publicInputs[3] = stringToBytes32(leaf);
+        publicInputs[0] = stringToBytes32(timestamp);
+        publicInputs[1] = stringToBytes32(leaf);
 
-        uint256 liquidity = uint256(stringToBytes32(liquidityStr));
-
-        uint256 currentTimestamp = 86400; // Fri Nov 15 2024 04:54:06 GMT+0000
+        uint256 currentTimestamp = 1732276090; // Fri Nov 15 2024 04:54:06 GMT+0000
         vm.warp(currentTimestamp);
 
-        uint256 leafIndex = vault.deposit{value: liquidity}(proofBytes, publicInputs);
+        uint256 leafIndex = proofOfTime.createEvent(proofBytes, publicInputs);
 
-        (, uint256 root,,) = vault.binaryIMTData();
+        (, uint256 root,,) = proofOfTime.binaryIMTData();
 
         // Generate Data for Withdraw Proof
-        (uint256[] memory proofSiblings, uint8[] memory proofPathIndices) = vault.createProof(leafIndex);
+        (uint256[] memory proofSiblings, uint8[] memory proofPathIndices) = proofOfTime.createProof(leafIndex);
 
         vm.writeFile("data/root.txt", bytes32ToString(bytes32(root)));
 
@@ -169,115 +167,81 @@ contract CryptographyTest is Test, ConvertBytes32ToString {
         }
     }
 
-    function test_withdraw_proof() public view {
-        string memory proof = vm.readLine("./data/withdraw_proof.txt");
+    function test_prove_event_proof() public view {
+        string memory proof = vm.readLine("./data/prove_event_proof.txt");
         bytes memory proofBytes = vm.parseBytes(proof);
 
-        string memory recipient = vm.readLine("./data/withdraw_recipient.txt");
-        string memory current_timestamp = vm.readLine("./data/withdraw_current_timestamp.txt");
-        string memory asset = vm.readLine("./data/withdraw_asset.txt");
-        string memory liquidity = vm.readLine("./data/withdraw_liquidity.txt");
-        string memory root = vm.readLine("./data/withdraw_root.txt");
-        string memory nullifier_hash = vm.readLine("./data/withdraw_nullifier_hash.txt");
+        string memory current_timestamp = vm.readLine("./data/prove_event_current_timestamp.txt");
+        string memory root = vm.readLine("./data/prove_event_root.txt");
+        string memory nullifier_hash = vm.readLine("./data/prove_event_nullifier_hash.txt");
 
-        console.log("recipient", recipient);
         console.log(current_timestamp);
-        console.log(asset);
-        console.log(liquidity);
         console.log(root);
         console.log(nullifier_hash);
 
-        bytes32[] memory publicInputs = new bytes32[](6);
-        publicInputs[0] = stringToBytes32(recipient);
-        publicInputs[1] = stringToBytes32(current_timestamp);
-        publicInputs[2] = stringToBytes32(asset);
-        publicInputs[3] = stringToBytes32(liquidity);
-        publicInputs[4] = stringToBytes32(root);
-        publicInputs[5] = stringToBytes32(nullifier_hash);
+        bytes32[] memory publicInputs = new bytes32[](3);
+        publicInputs[0] = stringToBytes32(current_timestamp);
+        publicInputs[1] = stringToBytes32(root);
+        publicInputs[2] = stringToBytes32(nullifier_hash);
 
         console.log("checking zk proof");
-        withdrawVerifier.verify(proofBytes, publicInputs);
+        proveEventVerifier.verify(proofBytes, publicInputs);
         console.log("verified");
     }
 
-    function test_deposit_withdraw() public {
+    function test_create_and_prove() public {
         // public inputs
-        string memory deposit_asset = vm.readLine("./data/deposit_asset.txt");
-        string memory deposit_liquidityStr = vm.readLine("./data/deposit_liquidity.txt");
-        string memory deposit_timestamp = vm.readLine("./data/deposit_timestamp.txt");
-        string memory deposit_leaf = vm.readLine("./data/deposit_leaf.txt");
+        string memory create_event_timestamp = vm.readLine("./data/create_event_timestamp.txt");
+        string memory create_event_leaf = vm.readLine("./data/create_event_leaf.txt");
 
         // proof
-        string memory deposit_proof = vm.readLine("./data/deposit_proof.txt");
-        bytes memory deposit_proofBytes = vm.parseBytes(deposit_proof);
+        string memory create_event_proof = vm.readLine("./data/create_event_proof.txt");
+        bytes memory create_event_proofBytes = vm.parseBytes(create_event_proof);
 
         // public inputs
-        bytes32[] memory deposit_publicInputs = new bytes32[](4);
-        deposit_publicInputs[0] = stringToBytes32(deposit_asset);
-        deposit_publicInputs[1] = stringToBytes32(deposit_liquidityStr);
-        deposit_publicInputs[2] = stringToBytes32(deposit_timestamp);
-        deposit_publicInputs[3] = stringToBytes32(deposit_leaf);
-
-        uint256 deposit_liquidity = uint256(stringToBytes32(deposit_liquidityStr));
+        bytes32[] memory create_event_public_inputs = new bytes32[](2);
+        create_event_public_inputs[0] = stringToBytes32(create_event_timestamp);
+        create_event_public_inputs[1] = stringToBytes32(create_event_leaf);
 
         uint256 currentTimestamp = 1731646446; // Fri Nov 15 2024 04:54:06 GMT+0000
         vm.warp(currentTimestamp);
 
-        depositVerifier.verify(deposit_proofBytes, deposit_publicInputs);
+        proveEventVerifier.verify(create_event_proofBytes, create_event_public_inputs);
 
         // Simulate deposit from an address
         address depositor = vm.addr(1);
         vm.deal(depositor, 1e18);
         vm.startPrank(depositor);
 
-        vault.deposit{value: deposit_liquidity}(deposit_proofBytes, deposit_publicInputs);
+        proofOfTime.createEvent(create_event_proofBytes, create_event_public_inputs);
         vm.stopPrank();
 
-        uint256 vaultBalance = address(vault).balance;
-        assert(vaultBalance == deposit_liquidity);
+        string memory prove_event_proof = vm.readLine("./data/prove_event_proof.txt");
+        bytes memory prove_event_proofBytes = vm.parseBytes(prove_event_proof);
 
-        string memory withdraw_proof = vm.readLine("./data/withdraw_proof.txt");
-        bytes memory withdraw_proofBytes = vm.parseBytes(withdraw_proof);
+        string memory prove_event_current_timestamp = vm.readLine("./data/prove_event_current_timestamp.txt");
+        string memory prove_event_root = vm.readLine("./data/prove_event_root.txt");
+        string memory prove_event_nullifier_hash = vm.readLine("./data/prove_event_nullifier_hash.txt");
 
-        string memory withdraw_recipient = vm.readLine("./data/withdraw_recipient.txt");
-        string memory withdraw_current_timestamp = vm.readLine("./data/withdraw_current_timestamp.txt");
-        string memory withdraw_asset = vm.readLine("./data/withdraw_asset.txt");
-        string memory withdraw_liquidity = vm.readLine("./data/withdraw_liquidity.txt");
-        string memory withdraw_root = vm.readLine("./data/withdraw_root.txt");
-        string memory withdraw_nullifier_hash = vm.readLine("./data/withdraw_nullifier_hash.txt");
+        console.log(prove_event_root);
+        console.log(prove_event_nullifier_hash);
 
-        console.log(withdraw_recipient);
-        console.log(withdraw_current_timestamp);
-        console.log(withdraw_asset);
-        console.log(withdraw_liquidity);
-        console.log(withdraw_root);
-        console.log(withdraw_nullifier_hash);
-
-        bytes32[] memory publicInputs = new bytes32[](6);
-        publicInputs[0] = stringToBytes32(withdraw_recipient);
-        publicInputs[1] = stringToBytes32(withdraw_current_timestamp);
-        publicInputs[2] = stringToBytes32(withdraw_asset);
-        publicInputs[3] = stringToBytes32(withdraw_liquidity);
-        publicInputs[4] = stringToBytes32(withdraw_root);
-        publicInputs[5] = stringToBytes32(withdraw_nullifier_hash);
+        bytes32[] memory publicInputs = new bytes32[](3);
+        publicInputs[0] = stringToBytes32(prove_event_current_timestamp);
+        publicInputs[1] = stringToBytes32(prove_event_root);
+        publicInputs[2] = stringToBytes32(prove_event_nullifier_hash);
 
         uint256 timestamp = 1731747190; // Sat Nov 16 2024 08:53:10 GMT+0000
         vm.warp(timestamp);
 
         console.log("checking zk proof");
-        withdrawVerifier.verify(withdraw_proofBytes, publicInputs);
+        createEventVerifier.verify(prove_event_proofBytes, publicInputs);
         console.log("verified");
 
         // Simulate withdrawal from another address
         address withdrawer = vm.addr(2);
         vm.startPrank(withdrawer);
-        vault.withdraw(withdraw_proofBytes, publicInputs);
+        proofOfTime.proveEvent(prove_event_proofBytes, publicInputs);
         vm.stopPrank();
-
-        // assert recipient balance is equal to withdraw liquidity amount
-        assert(
-            address(uint160(uint256(stringToBytes32(withdraw_recipient)))).balance
-                == uint256(stringToBytes32(withdraw_liquidity))
-        );
     }
 }
