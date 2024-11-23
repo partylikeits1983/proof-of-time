@@ -29,7 +29,7 @@ contract CryptoTools {
     }
 
     // @dev this is used for the frontend
-    // DO NOT USE IN PRODUCTION, only for proof of concept & testing 
+    // DO NOT USE IN PRODUCTION, only for proof of concept & testing
     function generateLeaf(uint256 secret, uint256 nullifier, uint256 asset, uint256 liquidity, uint256 depositTimestamp)
         public
         pure

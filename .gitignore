@@ -17,4 +17,5 @@ docs/
 **/*rs.bk
 Cargo.lock
 
-/lib/
+/lib
+/rust-tools/target/**

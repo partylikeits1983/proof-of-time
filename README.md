@@ -1,7 +1,5 @@
 # Proof of Time
 
-
-
 ## Setting up:
 
 1) Install Noir
@@ -39,27 +37,27 @@ forge test --match-test test_write_nullifier
 
 ### 3) Get IMT root, proof siblings, and path indicies, then format /withdraw/Prover.toml
 ```
-forge test --match-test test_deposit_proof_vault_generate_data
+forge test --match-test test_create_event_proof_generate_data
 
-cd tornado-cli
-cargo run --package tornado-cli --bin withdraw_prover_formatter
+cd rust-tools 
+cargo run --package rust-tools  --bin prove_event_prover_formatter
 cd ..
 ```
 
 ### 4) Create withdraw proof, convert to hex, run test
 ```
-cd circuits/withdraw
+cd circuits/prove_event
 nargo execute
-bb prove -b ./target/withdraw.json -w ./target/withdraw.gz -o ./target/proof
-bb write_vk -b ./target/withdraw.json -o ./target/vk
+bb prove -b ./target/prove_event.json -w ./target/prove_event.gz -o ./target/proof
+bb write_vk -b ./target/prove_event.json -o ./target/vk
 cd ..
 cd ..
 
-cd tornado-cli
-cargo run --package tornado-cli --bin withdraw_proof_convert
+cd rust-tools
+cargo run --package rust-tools --bin prove_event_proof_convert
 cd ..
 
-forge test --match-test test_withdraw_proof 
+forge test --match-test test_prove_event_proof 
 ```
 
 ### RUNNING THE FRONTEND:
