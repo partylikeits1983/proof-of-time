@@ -17,6 +17,9 @@ docs/
 **/*rs.bk
 Cargo.lock
 
-/lib
-!/lib/forge-std
+# Ignore everything in lib except forge-std
+/lib/*
+!/lib/forge-std/
+!/lib/forge-std/**
+
 /rust-tools/target/**
