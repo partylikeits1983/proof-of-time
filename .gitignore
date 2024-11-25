@@ -18,4 +18,5 @@ docs/
 Cargo.lock
 
 /lib
+!/lib/forge-std
 /rust-tools/target/**
