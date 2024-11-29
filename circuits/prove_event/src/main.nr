@@ -2,6 +2,7 @@ use dep::std::hash::poseidon;
 
 fn main(
     current_timestamp: pub Field,
+    time_delay: pub Field,
     create_timestamp: Field,
     root: pub Field,
     secret: Field,
@@ -12,7 +13,7 @@ fn main(
 ) {
     // check current_timestamp - 86400 > deposit_timestamp
     // let one_day_ago = current_timestamp - 86400;
-    let one_day_ago = current_timestamp - 10; // 10 seconds (for testing)
+    let one_day_ago = current_timestamp - time_delay; // 10 seconds (for testing)
     let can_withdraw = create_timestamp.lt(one_day_ago);
     assert(can_withdraw);
 
@@ -38,8 +39,8 @@ fn main(
 #[test]
 fn test_main() {
     // Step 1: Set up inputs
-    let recipient_address = 0;
     let current_timestamp = 1731728931; // Sat Nov 16 2024 03:48:51 GMT+0000
+    let time_delay = 10; // 10 seconds
     let create_timestamp = 1731613683; // Thu Nov 14 2024 19:48:03 GMT+0000
     let nullifier = 123456789;
     let secret = 987654321;
@@ -73,7 +74,6 @@ fn test_main() {
     }
     let root = hash;
 
-    println(recipient_address);
     println(root);
     println(nullifier_hash);
     println(nullifier);
@@ -84,6 +84,7 @@ fn test_main() {
     // Step 6: Invoke the main function
     main(
         current_timestamp,
+        time_delay,
         create_timestamp,
         root,
         secret,
